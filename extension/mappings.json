@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "version": "0.1.0",
+    "lastUpdated": "2026-03-10",
+    "description": "Community mapping of PassMed & Quesmed QIDs to Spranki Anki deck notes"
+  },
+  "passMed": {},
+  "quesmed": {}
+}

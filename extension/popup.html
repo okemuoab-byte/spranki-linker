@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spranki Linker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 280px;
+      background: #1a1a2e;
+      color: #e0e4f4;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #4f8ef7, #7c5cbf);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .header span { font-size: 20px; }
+
+    .body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+    }
+
+    .status-label { color: #9ca8c8; font-size: 12px; }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+
+    .badge-ok { background: rgba(34,197,94,0.18); color: #4ade80; }
+    .badge-err { background: rgba(239,68,68,0.18); color: #f87171; }
+    .badge-checking { background: rgba(250,204,21,0.18); color: #fbbf24; }
+
+    .info-text {
+      font-size: 11px;
+      color: rgba(200,210,240,0.5);
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 9px;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: rgba(255,255,255,0.08);
+      color: #c0cce8;
+      transition: background 0.15s;
+    }
+
+    .btn:hover { background: rgba(255,255,255,0.14); }
+
+    .btn-primary { background: #4f8ef7; color: #fff; }
+    .btn-primary:hover { background: #3a7ae8; }
+
+    .api-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+    }
+
+    .api-label {
+      font-size: 11px;
+      color: #9ca8c8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .api-input {
+      width: 100%;
+      padding: 6px 8px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 5px;
+      color: #e0e4f4;
+      font-size: 11px;
+      font-family: monospace;
+    }
+
+    .api-input:focus { outline: none; border-color: #4f8ef7; }
+
+    .api-row { display: flex; gap: 6px; }
+    .api-row .btn { flex: 1; padding: 6px; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span>🃏</span>
+    <h1>Spranki Linker</h1>
+  </div>
+
+  <div class="body">
+    <div class="status-row">
+      <span class="status-label">AnkiConnect</span>
+      <span class="status-badge badge-checking" id="anki-status">Checking…</span>
+    </div>
+
+    <div class="status-row">
+      <span class="status-label">Mappings loaded</span>
+      <span class="status-badge badge-ok" id="mapping-status">—</span>
+    </div>
+
+    <div class="api-section">
+      <div class="api-label">
+        <span>Claude API Key</span>
+        <span id="claude-status" style="color:#4ade80;font-size:10px;"></span>
+      </div>
+      <input type="password" class="api-input" id="api-key-input" placeholder="sk-ant-api03-…">
+      <div class="api-row">
+        <button class="btn" id="btn-save-key">Save key</button>
+        <button class="btn" id="btn-clear-key" style="color:#f87171">Clear</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-reload">↻ Reload mappings</button>
+
+    <p class="info-text">
+      Open a PassMed or Quesmed question to see linked Spranki cards.
+    </p>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
