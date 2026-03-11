@@ -452,68 +452,74 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "RECORD_WRONG") {
+    // sessionWrong format: { platform: { qid: title } }
     chrome.storage.local.get("sessionWrong").then(stored => {
       const session = stored.sessionWrong || {};
       const key = message.platform;
-      if (!session[key]) session[key] = [];
-      if (!session[key].includes(message.qid)) {
-        session[key].push(message.qid);
+      if (!session[key]) session[key] = {};
+      if (!(message.qid in session[key])) {
+        session[key][message.qid] = message.title || "";
       }
-      return chrome.storage.local.set({ sessionWrong: session }).then(() => session[key].length);
+      return chrome.storage.local.set({ sessionWrong: session })
+        .then(() => Object.keys(session[key]).length);
     }).then(count => sendResponse({ ok: true, count }))
       .catch(() => sendResponse({ ok: false, count: 0 }));
     return true;
   }
 
   if (message.type === "GET_SESSION_REVIEW") {
-    chrome.storage.local.get(["sessionWrong", "customMappings"]).then(async stored => {
+    chrome.storage.local.get("sessionWrong").then(async stored => {
       const platform = message.platform;
-      const wrongQIDs = (stored.sessionWrong || {})[platform] || [];
+      const wrongMap = (stored.sessionWrong || {})[platform] || {};
+      const wrongQIDs = Object.keys(wrongMap);
+
       if (!wrongQIDs.length) {
-        sendResponse({ wrongCount: 0, cards: [] });
+        sendResponse({ wrongCount: 0, groups: [], allNoteIds: [] });
         return;
       }
 
-      // Get all linked noteIds for the wrong questions
       const mappings = await getMappings();
       const platformMappings = mappings[platform] || {};
-      let allNoteIds = [];
+      const allNoteIds = [];
+      const groups = [];
 
       for (const qid of wrongQIDs) {
+        const title = wrongMap[qid];
         const mapping = platformMappings[qid];
-        if (!mapping) continue;
-        if (mapping.noteIds?.length) {
-          allNoteIds.push(...mapping.noteIds);
-        } else if (mapping.search) {
+        let noteIds = [];
+
+        if (mapping?.noteIds?.length) {
+          noteIds = mapping.noteIds;
+        } else if (mapping?.search) {
           try {
-            const ids = await ankiConnect("findNotes", {
+            noteIds = await ankiConnect("findNotes", {
               query: `deck:"!Spranki Clinical" ${mapping.search}`
             });
-            allNoteIds.push(...ids);
           } catch (e) { /* skip */ }
         }
+
+        let cards = [];
+        if (noteIds.length) {
+          try {
+            const notes = await ankiConnect("notesInfo", { notes: noteIds });
+            cards = notes.map(n => ({
+              noteId: n.noteId,
+              front: extractFront(n),
+              tags: n.tags || [],
+            })).filter(c => c.front);
+            allNoteIds.push(...noteIds);
+          } catch (e) { /* ankiConnectDown handled below */ }
+        }
+
+        groups.push({ qid, title, cards });
       }
 
-      // Deduplicate
-      allNoteIds = [...new Set(allNoteIds)];
-
-      if (!allNoteIds.length) {
-        sendResponse({ wrongCount: wrongQIDs.length, cards: [], allNoteIds: [] });
-        return;
-      }
-
-      try {
-        const notes = await ankiConnect("notesInfo", { notes: allNoteIds.slice(0, 20) });
-        const cards = notes.map(n => ({
-          noteId: n.noteId,
-          front: extractFront(n),
-          tags: n.tags || [],
-        })).filter(c => c.front);
-        sendResponse({ wrongCount: wrongQIDs.length, cards, allNoteIds });
-      } catch (e) {
-        sendResponse({ wrongCount: wrongQIDs.length, cards: [], allNoteIds, ankiConnectDown: true });
-      }
-    }).catch(() => sendResponse({ wrongCount: 0, cards: [] }));
+      sendResponse({
+        wrongCount: wrongQIDs.length,
+        groups,
+        allNoteIds: [...new Set(allNoteIds)],
+      });
+    }).catch(() => sendResponse({ wrongCount: 0, groups: [], allNoteIds: [] }));
     return true;
   }
 

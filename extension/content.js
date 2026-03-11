@@ -88,7 +88,7 @@ async function init() {
 
   // Restore wrong count from storage so badge is accurate after page refresh
   chrome.storage.local.get("sessionWrong", stored => {
-    sessionWrongCount = ((stored.sessionWrong || {})[platform] || []).length;
+    sessionWrongCount = Object.keys((stored.sessionWrong || {})[platform] || {}).length;
   });
 
   // For PassMed, skip the initial extractQID() call — it always returns null in quiz mode
@@ -118,7 +118,7 @@ async function init() {
           // Auto-record wrong answer when detected (only once per question)
           if (qid && answeredCorrectly === false && lastAnsweredState !== qid) {
             lastAnsweredState = qid;
-            chrome.runtime.sendMessage({ type: "RECORD_WRONG", platform, qid }, (res) => {
+            chrome.runtime.sendMessage({ type: "RECORD_WRONG", platform, qid, title: activeTitle || "" }, (res) => {
               sessionWrongCount = res?.count ?? sessionWrongCount;
               // Update the session badge in overlay if visible
               const badge = document.getElementById("spranki-session-btn");
@@ -252,7 +252,7 @@ function renderOverlay(response, source, qid, excludeNoteIds = new Set()) {
   overlay.querySelector("#spranki-mark-wrong")?.addEventListener("click", (e) => {
     const btn = e.currentTarget;
     if (!currentQID) return;
-    chrome.runtime.sendMessage({ type: "RECORD_WRONG", platform: activePlatform, qid: currentQID }, (res) => {
+    chrome.runtime.sendMessage({ type: "RECORD_WRONG", platform: activePlatform, qid: currentQID, title: activeTitle || "" }, (res) => {
       sessionWrongCount = res?.count ?? sessionWrongCount;
       btn.textContent = "✗ Marked wrong";
       btn.disabled = true;
@@ -478,33 +478,38 @@ function showSessionReview(overlay) {
       return;
     }
 
-    const { wrongCount, cards, allNoteIds, ankiConnectDown } = response;
+    const { wrongCount, groups, allNoteIds } = response;
 
     if (wrongCount === 0) {
       body.innerHTML = `
         <div class="spranki-notice">No wrong answers recorded yet.<br><small>Answer some questions or use "Mark question wrong".</small></div>
         <button id="spranki-session-back" class="spranki-btn spranki-secondary" style="font-size:11px">← Back</button>`;
-    } else if (ankiConnectDown) {
-      body.innerHTML = `
-        <div class="spranki-notice">⚠️ AnkiConnect not running.<br><small>${wrongCount} wrong questions tracked.</small></div>
-        <button id="spranki-session-back" class="spranki-btn spranki-secondary" style="font-size:11px">← Back</button>`;
     } else {
-      const cardList = cards.length > 0
-        ? cards.map(c => {
-            const title = c.front.length > 100 ? c.front.slice(0, 100) + "…" : c.front;
-            const tag = (c.tags || []).filter(t => t.includes("Spranki"))
-              .map(t => t.split("::").slice(-2).join(" · ")).slice(0, 1)
-              .map(t => `<span class="spranki-tag">${escapeHTML(t)}</span>`).join("");
-            return `<div class="spranki-card" style="border-color:rgba(251,146,60,0.3)">
-              <div class="spranki-card-title">${escapeHTML(title)}</div>
-              <div class="spranki-card-tags">${tag}</div>
-            </div>`;
-          }).join("")
-        : `<div class="spranki-notice" style="padding:8px">Cards not yet linked to those questions.</div>`;
+      const groupsHTML = groups.map(g => {
+        const label = g.title ? escapeHTML(g.title) : `Q${g.qid}`;
+        const cardsHTML = g.cards.length > 0
+          ? g.cards.map(c => {
+              const front = c.front.length > 100 ? c.front.slice(0, 100) + "…" : c.front;
+              const tag = (c.tags || []).filter(t => t.includes("Spranki"))
+                .map(t => t.split("::").slice(-2).join(" · ")).slice(0, 1)
+                .map(t => `<span class="spranki-tag">${escapeHTML(t)}</span>`).join("");
+              return `<div class="spranki-card" style="border-color:rgba(251,146,60,0.3);margin-top:4px">
+                <div class="spranki-card-title">${escapeHTML(front)}</div>
+                <div class="spranki-card-tags">${tag}</div>
+              </div>`;
+            }).join("")
+          : `<div style="font-size:11px;color:rgba(200,210,240,0.4);padding:4px 0">No linked card yet</div>`;
+
+        return `
+          <div style="margin-bottom:8px">
+            <div style="font-size:10px;font-weight:700;color:#f87171;margin-bottom:2px">✗ ${label}</div>
+            ${cardsHTML}
+          </div>`;
+      }).join("");
 
       body.innerHTML = `
-        <div style="font-size:11px;color:#f87171;font-weight:700;margin-bottom:4px">✗ ${wrongCount} wrong this session</div>
-        ${cardList}
+        <div style="font-size:11px;color:#f87171;font-weight:700;margin-bottom:6px">✗ ${wrongCount} wrong this session</div>
+        ${groupsHTML}
         <div style="display:flex;gap:6px;margin-top:6px">
           ${allNoteIds?.length ? `<button id="spranki-open-session" class="spranki-btn" style="font-size:11px">Open all in Anki</button>` : ""}
           <button id="spranki-clear-session" class="spranki-btn spranki-secondary" style="font-size:11px;color:#f87171">Clear session</button>
@@ -512,7 +517,6 @@ function showSessionReview(overlay) {
         </div>`;
     }
 
-    // Wire up buttons
     body.querySelector("#spranki-open-session")?.addEventListener("click", () => {
       chrome.runtime.sendMessage({ type: "OPEN_SESSION_IN_ANKI", noteIds: allNoteIds });
     });
@@ -525,12 +529,11 @@ function showSessionReview(overlay) {
           badge.textContent = "Session";
           badge.classList.add("spranki-session-empty");
         }
-        showSessionReview(overlay); // refresh
+        showSessionReview(overlay);
       });
     });
 
     body.querySelector("#spranki-session-back")?.addEventListener("click", () => {
-      // Force re-render by clearing currentQID first (guard skips if qid === currentQID)
       const savedQID = currentQID;
       currentQID = null;
       checkAndRenderOverlay(activePlatform, savedQID, activeTitle, activeQuestion);
