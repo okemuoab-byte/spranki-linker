@@ -385,7 +385,7 @@ function buildOverlayHTML(response, source, qid, excludeNoteIds = new Set()) {
     // Auto-suggest results — exclude cards already linked to this question
     const filtered = suggestions.filter(c => !excludeNoteIds.has(c.noteId));
     if (filtered.length === 0) {
-      bodyHTML = `<div class="spranki-notice">No other matches found in your deck.</div>`;
+      bodyHTML = `<div class="spranki-notice">No matching card found in your Spranki deck for this topic.<br><small>This question may not have a linked card yet.</small></div>`;
     } else {
       bodyHTML = filtered.map(card => `
         <div class="spranki-suggestion">

@@ -71,6 +71,13 @@ btnClearKey.addEventListener("click", () => {
   });
 });
 
+document.getElementById("btn-clear-cache").addEventListener("click", () => {
+  chrome.storage.local.remove("titleCache", () => {
+    claudeStatus.textContent = "Cache cleared";
+    claudeStatus.style.color = "#fbbf24";
+  });
+});
+
 // Reload mappings
 btnReload.addEventListener("click", () => {
   btnReload.disabled = true;

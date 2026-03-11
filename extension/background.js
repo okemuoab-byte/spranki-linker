@@ -127,11 +127,17 @@ async function getSprankiCards() {
 
 // ── Claude-powered title → tag lookup ────────────────────────
 async function claudeTagSearch(title, apiKey) {
-  // Collect unique tag leaf segments from Spranki to give Claude context
+  // Send full tag paths (not just leaf segments) so Claude can see hierarchy.
+  // e.g. "Paediatrics::NeonatalScreening" vs "Gynaecology::CervicalScreening"
+  // This lets Claude pick specific leaf tags rather than broad shared words.
   const cards = await getSprankiCards();
-  const segments = [...new Set(
-    cards.flatMap(c => c.tags.flatMap(t => t.split("::").slice(1)))
-  )].sort().slice(0, 200).join(", ");
+  const tagPaths = [...new Set(
+    cards.flatMap(c =>
+      c.tags
+        .filter(t => t.includes("::"))
+        .map(t => t.split("::").slice(1).join("::"))  // strip deck prefix
+    )
+  )].sort().slice(0, 300).join("\n");
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -142,14 +148,16 @@ async function claudeTagSearch(title, apiKey) {
     },
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 50,
+      max_tokens: 80,
       messages: [{
         role: "user",
         content:
-          `Anki deck tag segments: ${segments}\n\n` +
+          `Anki tag paths in this deck (Category::SubCategory format):\n${tagPaths}\n\n` +
           `PassMed topic: "${title}"\n\n` +
-          `Write an Anki findNotes search (1-3 tag wildcards) to find cards about this topic. ` +
-          `Use words from the tag segments above. Format: tag:*Word1* tag:*Word2*\n` +
+          `Find the best matching tag path above. ` +
+          `Return an Anki search using BOTH the category and subcategory as separate tag wildcards for specificity. ` +
+          `Format: tag:*Category* tag:*SubCategory*\n` +
+          `If only one level exists, use: tag:*Word*\n` +
           `Reply with only the search string, nothing else.`
       }]
     })
@@ -235,22 +243,40 @@ async function getSuggestions(questionText, title = "") {
           query: `deck:"!Spranki Clinical" ${search}`
         });
         if (noteIds.length > 0) {
-          const notes = await ankiConnect("notesInfo", { notes: noteIds.slice(0, 5) });
-          return notes
-            .map(n => ({ noteId: n.noteId, front: extractFront(n), tags: n.tags || [], score: 1.0 }))
-            .filter(n => n.front);
+          // Fuzzy-rank within Claude's candidate pool for differentiated scores.
+          const notes = await ankiConnect("notesInfo", { notes: noteIds.slice(0, 20) });
+          const scored = notes
+            .map(n => ({
+              noteId: n.noteId,
+              front: extractFront(n),
+              tags: n.tags || [],
+              score: fuzzyScore(questionText, extractFront(n), n.tags || [], title)
+            }))
+            .filter(n => n.front)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5);
+          if (scored.length > 0 && scored[0].score === 0) {
+            scored.forEach(c => { c.score = 0.40; });
+          }
+          return scored;
         }
+        // Claude's search found 0 cards — this topic likely has no card in the deck.
+        // Return empty rather than falling through to full-deck fuzzy, which would
+        // surface superficially similar cards (e.g. "screening" matching cervical cards).
+        return [];
       } catch (e) {
         console.warn("Anki search failed:", e.message);
       }
     }
   }
 
-  // ── Path 2: Fuzzy fallback (no API key or Claude found nothing) ──
+  // ── Path 2: Fuzzy fallback (no API key set) ──────────────────
+  // Only reached when Claude is not configured. Higher threshold avoids
+  // low-confidence matches that share a word but not the topic.
   const cards = await getSprankiCards();
   return cards
     .map(c => ({ ...c, score: fuzzyScore(questionText, c.front, c.tags, title) }))
-    .filter(c => c.score > 0.08)
+    .filter(c => c.score > 0.20)
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 }
@@ -339,29 +365,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!d) return { qid: null };
         const nid = d.new_question_id;
 
-        // Try to detect if the user has answered and whether they got it right.
-        // PassMed may store the user's answer in various window variables.
+        // Try to detect if the user answered and whether they got it right.
+        // Only use definitive signals — no DOM wildcards that fire on unanswered questions.
         let answeredCorrectly = null;
         const correctAns = String(d.correct_answer || d.answer || "");
-        // Try known field names for user's selection
-        const userAns = String(
-          window.selected_answer ?? window.user_answer ?? window.my_answer ?? window.chosen_answer ?? ""
-        );
-        if (userAns && correctAns) {
-          answeredCorrectly = userAns === correctAns;
-        }
 
-        // DOM fallback: look for visual correct/wrong indicators PassMed adds after submission
-        if (answeredCorrectly === null) {
-          const wrongEl = document.querySelector(
-            '.answer.wrong, .answer.incorrect, .option.wrong, .option.incorrect, ' +
-            '[class*="wrong"], [class*="incorrect"], .alert-danger'
+        // 1. Check question_data itself for an answered state field
+        if (typeof d.answered_correctly === "boolean") {
+          answeredCorrectly = d.answered_correctly;
+        } else if (typeof d.is_correct === "boolean") {
+          answeredCorrectly = d.is_correct;
+        } else {
+          // 2. Compare user's answer to correct answer via known window or question_data fields
+          const userAns = String(
+            d.selected_answer ?? d.user_answer ?? d.selected ??
+            window.selected_answer ?? window.user_answer ?? ""
           );
-          const correctEl = document.querySelector(
-            '.answer.correct, .option.correct, .alert-success'
-          );
-          if (wrongEl || correctEl) {
-            answeredCorrectly = !wrongEl;
+          if (userAns && correctAns) {
+            answeredCorrectly = userAns === correctAns;
           }
         }
 
