@@ -589,6 +589,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
+  if (message.type === "STUDY_SESSION_IN_ANKI") {
+    // Tag all wrong-session cards sprankiLinker::review, then open that tag in Anki browser.
+    // This builds a dedicated review queue the user can study immediately in Anki.
+    if (!message.noteIds?.length) {
+      sendResponse({ ok: false });
+      return true;
+    }
+    ankiConnect("addTags", { notes: message.noteIds, tags: "sprankiLinker::review" })
+      .then(() => ankiConnect("guiBrowse", { query: "tag:sprankiLinker::review" }))
+      .then(() => sendResponse({ ok: true }))
+      .catch(err => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
+
   if (message.type === "CLEAR_SESSION") {
     // Archive current session to history before clearing
     chrome.storage.local.get(["sessionWrong", "sessionHistory"]).then(stored => {

@@ -560,12 +560,29 @@ function showSessionReview(overlay) {
         <div style="font-size:11px;color:#f87171;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:4px">${ICONS.alertTriangle}${wrongCount} wrong this session</div>
         ${groupsHTML}
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-          ${allNoteIds?.length ? `<button id="spranki-open-session" class="spranki-btn" style="font-size:11px">${ICONS.externalLink}Open all in Anki</button>` : ""}
+          ${allNoteIds?.length ? `
+            <button id="spranki-study-session" class="spranki-btn" style="font-size:11px;background:#7c5cbf">${ICONS.rotateCcw}Study in Anki</button>
+            <button id="spranki-open-session" class="spranki-btn spranki-secondary" style="font-size:11px">${ICONS.externalLink}Browse cards</button>
+          ` : ""}
           <button id="spranki-clear-session" class="spranki-btn spranki-secondary" style="font-size:11px;color:#f87171">${ICONS.trash}Clear &amp; save</button>
           <button id="spranki-show-history" class="spranki-btn spranki-secondary" style="font-size:11px">${ICONS.history}History</button>
           <button id="spranki-session-back" class="spranki-btn spranki-secondary" style="font-size:11px">${ICONS.arrowLeft}Back</button>
         </div>`;
     }
+
+    body.querySelector("#spranki-study-session")?.addEventListener("click", () => {
+      const btn = body.querySelector("#spranki-study-session");
+      btn.innerHTML = `<span class="spranki-spinner"></span>Tagging…`;
+      btn.disabled = true;
+      chrome.runtime.sendMessage({ type: "STUDY_SESSION_IN_ANKI", noteIds: allNoteIds }, (res) => {
+        if (res?.ok) {
+          btn.innerHTML = `${ICONS.checkCircle}Opening Anki`;
+        } else {
+          btn.innerHTML = `${ICONS.alertTriangle}Failed`;
+          btn.disabled = false;
+        }
+      });
+    });
 
     body.querySelector("#spranki-open-session")?.addEventListener("click", () => {
       chrome.runtime.sendMessage({ type: "OPEN_SESSION_IN_ANKI", noteIds: allNoteIds });
