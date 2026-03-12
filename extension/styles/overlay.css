@@ -296,6 +296,9 @@
   color: #fb923c;
   white-space: nowrap;
   transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .spranki-session-badge:hover {
@@ -356,9 +359,13 @@
 }
 
 .spranki-unlink svg,
-.spranki-collapse-btn svg,
-.spranki-session-badge svg {
+.spranki-collapse-btn svg {
   margin-right: 0;
+}
+
+/* Session badge uses gap instead of margin (inline-flex container) */
+.spranki-session-badge svg {
+  flex-shrink: 0;
 }
 
 .spranki-linked-badge svg,

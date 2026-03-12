@@ -614,7 +614,9 @@ function showSessionHistory(overlay) {
         <button id="spranki-history-back" class="spranki-btn spranki-secondary" style="font-size:11px;margin-top:4px">${ICONS.arrowLeft}Back</button>`;
     } else {
       const historyHTML = history.map((entry, i) => {
-        const formattedDate = new Date(entry.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+        // Append T12:00:00 so the date is parsed as local noon, not UTC midnight
+        // (avoids "11 Mar" showing for a "2026-03-12" entry in UTC-offset timezones)
+        const formattedDate = new Date(entry.date + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
         const questionsHTML = entry.questions.map(q =>
           `<div style="font-size:11px;color:rgba(220,220,240,0.6);padding:2px 0 2px 8px;border-left:2px solid rgba(251,146,60,0.3)">
             ${escapeHTML(q.title || `Q${q.qid}`)}
