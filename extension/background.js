@@ -57,10 +57,14 @@ async function getMappings() {
 async function getDueStatus(noteIds) {
   if (!noteIds.length) return new Map();
   const nidQuery = noteIds.map(id => `nid:${id}`).join(" OR ");
-  const [dueCardIds, newCardIds] = await Promise.all([
+  // Use allSettled so a failed query (e.g. Anki searching during sync) doesn't
+  // wipe out the other result — cards just show no badge rather than erroring.
+  const [dueResult, newResult] = await Promise.allSettled([
     ankiConnect("findCards", { query: `(${nidQuery}) is:due` }),
     ankiConnect("findCards", { query: `(${nidQuery}) is:new` }),
   ]);
+  const dueCardIds = dueResult.status === "fulfilled" ? dueResult.value : [];
+  const newCardIds  = newResult.status  === "fulfilled" ? newResult.value  : [];
 
   const status = new Map();
 
@@ -337,19 +341,22 @@ async function getSuggestions(questionText, title = "") {
 
 // ── Save a user-confirmed mapping ────────────────────────────
 async function saveMapping(platform, qid, noteId, topic) {
+  // Always store noteIds as Numbers to prevent string/number type mismatch
+  // when filtering during unlink (JSON import can deserialise them as either).
+  const nid = Number(noteId);
   const stored = await chrome.storage.local.get("customMappings");
   const maps = stored.customMappings || { passMed: {}, quesmed: {} };
   if (!maps[platform]) maps[platform] = {};
   const existing = maps[platform][String(qid)];
   if (existing) {
     // Append to existing mapping — allow multiple cards per question
-    const ids = new Set(existing.noteIds || []);
-    ids.add(noteId);
+    const ids = new Set((existing.noteIds || []).map(Number));
+    ids.add(nid);
     existing.noteIds = [...ids];
     existing.search = null; // noteIds take priority over search in lookupCards
   } else {
     maps[platform][String(qid)] = {
-      noteIds: [noteId],
+      noteIds: [nid],
       topic,
       contributor: "self",
       autoMapped: true,
@@ -465,7 +472,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const maps = stored.customMappings || { passMed: {}, quesmed: {} };
       const entry = (maps[message.platform] || {})[String(message.qid)];
       if (entry) {
-        entry.noteIds = (entry.noteIds || []).filter(id => id !== message.noteId);
+        // Normalise both sides to Number — JSON import may store IDs as strings
+        entry.noteIds = (entry.noteIds || []).map(Number).filter(id => id !== Number(message.noteId));
         // If no noteIds left and no search, remove the entry entirely
         if (!entry.noteIds.length && !entry.search) {
           delete maps[message.platform][String(message.qid)];

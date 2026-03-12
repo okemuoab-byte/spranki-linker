@@ -136,10 +136,17 @@ document.getElementById("import-input").addEventListener("change", (e) => {
       }
       chrome.storage.local.get("customMappings", (stored) => {
         const existing = stored.customMappings || { passMed: {}, quesmed: {} };
-        // Deep merge — imported entries win per-QID
+        // Deep merge — imported entries win per-QID.
+        // Normalise noteIds to Number so string/number comparison never breaks unlink.
         for (const platform of ["passMed", "quesmed"]) {
           if (imported[platform] && typeof imported[platform] === "object") {
-            existing[platform] = { ...(existing[platform] || {}), ...imported[platform] };
+            const normalised = {};
+            for (const [qid, entry] of Object.entries(imported[platform])) {
+              normalised[qid] = Array.isArray(entry?.noteIds)
+                ? { ...entry, noteIds: entry.noteIds.map(Number) }
+                : entry;
+            }
+            existing[platform] = { ...(existing[platform] || {}), ...normalised };
           }
         }
         const total = Object.keys(existing.passMed || {}).length

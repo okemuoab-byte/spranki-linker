@@ -215,6 +215,7 @@
 .spranki-loading {
   flex-direction: row;
   justify-content: center;
+  font-style: normal;
 }
 
 .spranki-notice small {
@@ -237,10 +238,7 @@
   background: rgba(79,142,247,0.25);
 }
 
-.spranki-loading {
-  font-style: italic;
-  color: rgba(220,220,240,0.5);
-}
+/* loading state colours applied via .spranki-notice base class */
 
 .spranki-suggestion {
   background: rgba(255,255,255,0.05);
