@@ -137,7 +137,7 @@ async function init() {
       } catch (e) {
         clearInterval(pollInterval);
       }
-    }, 500);
+    }, 1000);
   }
 
   const onNavigate = async () => {
@@ -267,7 +267,7 @@ function renderOverlay(response, source, qid, excludeNoteIds = new Set()) {
   overlay.querySelector("#spranki-toggle")?.addEventListener("click", () => {
     const body = overlay.querySelector(".spranki-body");
     const isHidden = body.style.display === "none";
-    body.style.display = isHidden ? "block" : "none";
+    body.style.display = isHidden ? "flex" : "none";
     overlay.querySelector("#spranki-toggle").textContent = isHidden ? "▼" : "▶";
   });
 
@@ -278,12 +278,12 @@ function renderOverlay(response, source, qid, excludeNoteIds = new Set()) {
     });
   });
 
-  // Mark card done in Anki
+  // Mark card reviewed in Anki
   overlay.querySelectorAll(".spranki-tag-done").forEach(btn => {
     btn.addEventListener("click", () => {
-      const tag = `${activePlatform}::done`;
+      const tag = `sprankiReviewed`;
       chrome.runtime.sendMessage({ type: "TAG_CARD", noteId: btn.dataset.noteId, tag });
-      btn.textContent = "✓ Tagged";
+      btn.textContent = "✓ Reviewed";
       btn.disabled = true;
     });
   });
@@ -326,13 +326,12 @@ function renderOverlay(response, source, qid, excludeNoteIds = new Set()) {
     body.innerHTML = `<div class="spranki-notice spranki-loading">🔍 Searching your Spranki deck…</div>`;
 
     chrome.runtime.sendMessage(
-      { type: "GET_SUGGESTIONS", questionText },
+      { type: "GET_SUGGESTIONS", questionText, title: activeTitle || "" },
       (response) => {
         if (chrome.runtime.lastError) {
           body.innerHTML = `<div class="spranki-notice">⚠️ ${escapeHTML(chrome.runtime.lastError.message)}</div>`;
           return;
         }
-        // Re-render the whole overlay with suggestions
         renderOverlay(response, activeSource, currentQID);
       }
     );
@@ -430,7 +429,10 @@ function buildOverlayHTML(response, source, qid, excludeNoteIds = new Set()) {
           <div class="spranki-card-tags">${tagLabel}</div>
           <div class="spranki-card-actions">
             <button class="spranki-btn spranki-open-card" data-note-id="${card.noteId}">Open in Anki</button>
-            <button class="spranki-btn spranki-secondary spranki-tag-done" data-note-id="${card.noteId}">Mark Done</button>
+            <button class="spranki-btn spranki-secondary spranki-tag-done" data-note-id="${card.noteId}"
+              ${card.tags.includes("sprankiReviewed") ? "disabled" : ""}>
+              ${card.tags.includes("sprankiReviewed") ? "✓ Reviewed" : "Mark Reviewed"}
+            </button>
             <button class="spranki-btn spranki-secondary spranki-unlink" data-note-id="${card.noteId}" style="color:#f87171" title="Remove link">×</button>
           </div>
         </div>`;
@@ -555,6 +557,7 @@ function makeDraggable(el) {
   header.style.cursor = "grab";
 
   header.addEventListener("mousedown", e => {
+    if (e.target.closest("button")) return; // don't drag when clicking header buttons
     isDragging = true;
     startX = e.clientX;
     startY = e.clientY;
