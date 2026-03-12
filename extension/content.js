@@ -492,7 +492,10 @@ function showSessionReview(overlay) {
     if (wrongCount === 0) {
       body.innerHTML = `
         <div class="spranki-notice">No wrong answers recorded yet.<br><small>Answer some questions or use "Mark question wrong".</small></div>
-        <button id="spranki-session-back" class="spranki-btn spranki-secondary" style="font-size:11px">← Back</button>`;
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button id="spranki-show-history" class="spranki-btn spranki-secondary" style="font-size:11px">📋 History</button>
+          <button id="spranki-session-back" class="spranki-btn spranki-secondary" style="font-size:11px">← Back</button>
+        </div>`;
     } else {
       const groupsHTML = groups.map(g => {
         const label = g.title ? escapeHTML(g.title) : `Q${g.qid}`;
@@ -519,9 +522,10 @@ function showSessionReview(overlay) {
       body.innerHTML = `
         <div style="font-size:11px;color:#f87171;font-weight:700;margin-bottom:6px">✗ ${wrongCount} wrong this session</div>
         ${groupsHTML}
-        <div style="display:flex;gap:6px;margin-top:6px">
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
           ${allNoteIds?.length ? `<button id="spranki-open-session" class="spranki-btn" style="font-size:11px">Open all in Anki</button>` : ""}
-          <button id="spranki-clear-session" class="spranki-btn spranki-secondary" style="font-size:11px;color:#f87171">Clear session</button>
+          <button id="spranki-clear-session" class="spranki-btn spranki-secondary" style="font-size:11px;color:#f87171">Clear &amp; save</button>
+          <button id="spranki-show-history" class="spranki-btn spranki-secondary" style="font-size:11px">📋 History</button>
           <button id="spranki-session-back" class="spranki-btn spranki-secondary" style="font-size:11px">← Back</button>
         </div>`;
     }
@@ -531,7 +535,7 @@ function showSessionReview(overlay) {
     });
 
     body.querySelector("#spranki-clear-session")?.addEventListener("click", () => {
-      chrome.runtime.sendMessage({ type: "CLEAR_SESSION" }, () => {
+      chrome.runtime.sendMessage({ type: "CLEAR_SESSION", platform: activePlatform }, () => {
         sessionWrongCount = 0;
         const badge = overlay.querySelector(".spranki-session-badge");
         if (badge) {
@@ -542,10 +546,75 @@ function showSessionReview(overlay) {
       });
     });
 
+    body.querySelector("#spranki-show-history")?.addEventListener("click", () => {
+      showSessionHistory(overlay);
+    });
+
     body.querySelector("#spranki-session-back")?.addEventListener("click", () => {
       const savedQID = currentQID;
       currentQID = null;
       checkAndRenderOverlay(activePlatform, savedQID, activeTitle, activeQuestion);
+    });
+  });
+}
+
+// ── Session history panel ─────────────────────────────────────
+function showSessionHistory(overlay) {
+  const body = overlay.querySelector(".spranki-body");
+  body.innerHTML = `<div class="spranki-notice spranki-loading">Loading history…</div>`;
+
+  chrome.runtime.sendMessage({ type: "GET_SESSION_HISTORY", platform: activePlatform }, (response) => {
+    if (chrome.runtime.lastError || !response) {
+      body.innerHTML = `<div class="spranki-notice">⚠️ Could not load history.</div>`;
+      return;
+    }
+
+    const { history } = response;
+
+    if (!history.length) {
+      body.innerHTML = `
+        <div class="spranki-notice">No past sessions yet.<br><small>Clear a session to save it here.</small></div>
+        <button id="spranki-history-back" class="spranki-btn spranki-secondary" style="font-size:11px;margin-top:4px">← Back</button>`;
+    } else {
+      const historyHTML = history.map((entry, i) => {
+        const formattedDate = new Date(entry.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+        const questionsHTML = entry.questions.map(q =>
+          `<div style="font-size:11px;color:rgba(220,220,240,0.6);padding:2px 0 2px 8px;border-left:2px solid rgba(251,146,60,0.3)">
+            ${escapeHTML(q.title || `Q${q.qid}`)}
+          </div>`
+        ).join("");
+        return `
+          <div class="spranki-history-entry" data-index="${i}">
+            <div class="spranki-history-header">
+              <span style="font-size:11px;font-weight:700;color:#e0e4f4">${formattedDate}</span>
+              <span style="font-size:10px;color:#f87171;font-weight:700">✗ ${entry.wrongCount} wrong</span>
+              <span class="spranki-history-toggle" style="font-size:10px;color:rgba(200,210,240,0.5);cursor:pointer;margin-left:auto">▼</span>
+            </div>
+            <div class="spranki-history-questions" style="display:none;margin-top:4px;gap:3px">
+              ${questionsHTML}
+            </div>
+          </div>`;
+      }).join("");
+
+      body.innerHTML = `
+        <div style="font-size:11px;color:rgba(200,210,240,0.6);margin-bottom:6px">Last ${history.length} session${history.length > 1 ? "s" : ""}</div>
+        ${historyHTML}
+        <button id="spranki-history-back" class="spranki-btn spranki-secondary" style="font-size:11px;margin-top:6px">← Back</button>`;
+
+      // Collapsible entries
+      body.querySelectorAll(".spranki-history-entry").forEach(entry => {
+        entry.querySelector(".spranki-history-header").addEventListener("click", () => {
+          const questions = entry.querySelector(".spranki-history-questions");
+          const toggle = entry.querySelector(".spranki-history-toggle");
+          const isHidden = questions.style.display === "none";
+          questions.style.display = isHidden ? "flex" : "none";
+          toggle.textContent = isHidden ? "▲" : "▼";
+        });
+      });
+    }
+
+    body.querySelector("#spranki-history-back")?.addEventListener("click", () => {
+      showSessionReview(overlay);
     });
   });
 }

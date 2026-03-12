@@ -567,9 +567,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "CLEAR_SESSION") {
-    chrome.storage.local.remove("sessionWrong")
-      .then(() => sendResponse({ ok: true }))
+    // Archive current session to history before clearing
+    chrome.storage.local.get(["sessionWrong", "sessionHistory"]).then(stored => {
+      const wrongMap = (stored.sessionWrong || {})[message.platform] || {};
+      const wrongQIDs = Object.keys(wrongMap);
+      const history = stored.sessionHistory || [];
+
+      if (wrongQIDs.length > 0) {
+        const entry = {
+          date: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
+          platform: message.platform,
+          wrongCount: wrongQIDs.length,
+          questions: wrongQIDs.map(qid => ({ qid, title: wrongMap[qid] || "" })),
+        };
+        history.unshift(entry);
+        if (history.length > 10) history.length = 10; // keep last 10
+      }
+
+      return chrome.storage.local.set({ sessionHistory: history, sessionWrong: {} });
+    }).then(() => sendResponse({ ok: true }))
       .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
+  if (message.type === "GET_SESSION_HISTORY") {
+    chrome.storage.local.get("sessionHistory").then(stored => {
+      const history = (stored.sessionHistory || [])
+        .filter(e => e.platform === message.platform);
+      sendResponse({ history });
+    }).catch(() => sendResponse({ history: [] }));
     return true;
   }
 });

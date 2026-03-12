@@ -312,3 +312,29 @@
 .spranki-mark-wrong-row .spranki-btn {
   width: 100%;
 }
+
+/* ── Session history ── */
+.spranki-history-entry {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 7px;
+  padding: 8px 10px;
+  margin-bottom: 5px;
+}
+
+.spranki-history-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.spranki-history-header:hover .spranki-history-toggle {
+  color: rgba(200,210,240,0.8) !important;
+}
+
+.spranki-history-questions {
+  flex-direction: column;
+  gap: 3px;
+}
