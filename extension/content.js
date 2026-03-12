@@ -3,6 +3,31 @@
 // Detects PassMed / Quesmed question pages and shows Anki card overlay
 // ============================================================
 
+// ── Lucide icons (paths extracted from lucide-react v0.462.0) ─
+const _ico = (paths, size = 12) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+
+const ICONS = {
+  chevronDown:   _ico(`<path d="m6 9 6 6 6-6"/>`, 14),
+  chevronRight:  _ico(`<path d="m9 18 6-6-6-6"/>`, 14),
+  x:             _ico(`<path d="M18 6 6 18"/><path d="m6 6 12 12"/>`, 13),
+  arrowLeft:     _ico(`<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>`),
+  check:         _ico(`<path d="M20 6 9 17l-5-5"/>`),
+  checkCircle:   _ico(`<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>`),
+  externalLink:  _ico(`<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>`),
+  link:          _ico(`<path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/>`),
+  clock:         _ico(`<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`),
+  alertTriangle: _ico(`<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>`),
+  trash:         _ico(`<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>`),
+  plusCircle:    _ico(`<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/>`),
+  search:        _ico(`<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>`),
+  history:       _ico(`<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>`),
+  bookOpen:      _ico(`<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>`),
+  xCircle:       _ico(`<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>`),
+  sparkles:      _ico(`<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>`),
+  rotateCcw:     _ico(`<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>`),
+};
+
 // ── PassMed QID reader ───────────────────────────────────────
 // Used only for direct-link navigation (e.g. passmedicine.com?q=1234).
 // Quiz mode always has ?q=0, so QID is read via background.js executeScript polling instead.
@@ -254,12 +279,12 @@ function renderOverlay(response, source, qid, excludeNoteIds = new Set()) {
     if (!currentQID) return;
     chrome.runtime.sendMessage({ type: "RECORD_WRONG", platform: activePlatform, qid: currentQID, title: activeTitle || "" }, (res) => {
       sessionWrongCount = res?.count ?? sessionWrongCount;
-      btn.textContent = "✗ Marked wrong";
+      btn.innerHTML = `${ICONS.xCircle}Marked wrong`;
       btn.disabled = true;
       lastAnsweredState = currentQID;
       // Update badge
       const badge = overlay.querySelector(".spranki-session-badge");
-      if (badge) badge.textContent = `${sessionWrongCount} wrong`;
+      if (badge) badge.innerHTML = `${ICONS.alertTriangle}${sessionWrongCount} wrong`;
     });
   });
 
@@ -268,7 +293,7 @@ function renderOverlay(response, source, qid, excludeNoteIds = new Set()) {
     const body = overlay.querySelector(".spranki-body");
     const isHidden = body.style.display === "none";
     body.style.display = isHidden ? "flex" : "none";
-    overlay.querySelector("#spranki-toggle").textContent = isHidden ? "▼" : "▶";
+    overlay.querySelector("#spranki-toggle").innerHTML = isHidden ? ICONS.chevronDown : ICONS.chevronRight;
   });
 
   // Open card in Anki browser
@@ -283,7 +308,7 @@ function renderOverlay(response, source, qid, excludeNoteIds = new Set()) {
     btn.addEventListener("click", () => {
       const tag = `sprankiReviewed`;
       chrome.runtime.sendMessage({ type: "TAG_CARD", noteId: btn.dataset.noteId, tag });
-      btn.textContent = "✓ Reviewed";
+      btn.innerHTML = `${ICONS.checkCircle}Reviewed`;
       btn.disabled = true;
     });
   });
@@ -319,17 +344,17 @@ function renderOverlay(response, source, qid, excludeNoteIds = new Set()) {
     const body = overlay.querySelector(".spranki-body");
 
     if (!questionText) {
-      body.innerHTML = `<div class="spranki-notice">⚠️ Could not read question text.<br><small>Right-click the question → Inspect, then tell us the element class.</small></div>`;
+      body.innerHTML = `<div class="spranki-notice">${ICONS.alertTriangle} Could not read question text.<br><small>Right-click the question → Inspect, then tell us the element class.</small></div>`;
       return;
     }
 
-    body.innerHTML = `<div class="spranki-notice spranki-loading">🔍 Searching your Spranki deck…</div>`;
+    body.innerHTML = `<div class="spranki-notice spranki-loading"><span class="spranki-spinner"></span>Searching your Spranki deck…</div>`;
 
     chrome.runtime.sendMessage(
       { type: "GET_SUGGESTIONS", questionText, title: activeTitle || "" },
       (response) => {
         if (chrome.runtime.lastError) {
-          body.innerHTML = `<div class="spranki-notice">⚠️ ${escapeHTML(chrome.runtime.lastError.message)}</div>`;
+          body.innerHTML = `<div class="spranki-notice">${ICONS.alertTriangle} ${escapeHTML(chrome.runtime.lastError.message)}</div>`;
           return;
         }
         renderOverlay(response, activeSource, currentQID);
@@ -368,23 +393,23 @@ function buildOverlayHTML(response, source, qid, excludeNoteIds = new Set()) {
   let bodyHTML = "";
 
   if (autoSearching) {
-    bodyHTML = `<div class="spranki-notice spranki-loading">🔍 Searching your Spranki deck…</div>`;
+    bodyHTML = `<div class="spranki-notice spranki-loading"><span class="spranki-spinner"></span>Searching your Spranki deck…</div>`;
 
   } else if (noQID) {
     const path = window.location.pathname + window.location.search;
-    bodyHTML = `<div class="spranki-notice">⏳ Waiting for a question.<br><small>${escapeHTML(path)}</small></div>`;
+    bodyHTML = `<div class="spranki-notice">${ICONS.clock} Waiting for a question.<br><small>${escapeHTML(path)}</small></div>`;
 
   } else if (bgError) {
-    bodyHTML = `<div class="spranki-notice">⚠️ Extension error.<br><small>${escapeHTML(bgError)}</small></div>`;
+    bodyHTML = `<div class="spranki-notice">${ICONS.alertTriangle} Extension error.<br><small>${escapeHTML(bgError)}</small></div>`;
 
   } else if (ankiConnectDown) {
-    bodyHTML = `<div class="spranki-notice">⚠️ AnkiConnect not running.<br><small>Open Anki with the AnkiConnect add-on installed.</small></div>`;
+    bodyHTML = `<div class="spranki-notice">${ICONS.alertTriangle} AnkiConnect not running.<br><small>Open Anki with the AnkiConnect add-on installed.</small></div>`;
 
   } else if (suggestions) {
     // Auto-suggest results — exclude cards already linked to this question
     const filtered = suggestions.filter(c => !excludeNoteIds.has(c.noteId));
     if (filtered.length === 0) {
-      bodyHTML = `<div class="spranki-notice">No matching card found in your Spranki deck for this topic.<br><small>This question may not have a linked card yet.</small></div>`;
+      bodyHTML = `<div class="spranki-notice">${ICONS.search} No matching card found in your Spranki deck for this topic.<br><small>This question may not have a linked card yet.</small></div>`;
     } else {
       bodyHTML = filtered.map(card => `
         <div class="spranki-suggestion">
@@ -394,18 +419,17 @@ function buildOverlayHTML(response, source, qid, excludeNoteIds = new Set()) {
             <span class="spranki-card-tags">${card.tags.slice(0, 2).map(t => `<span class="spranki-tag">${escapeHTML(t.split("::").pop())}</span>`).join("")}</span>
           </div>
           <div class="spranki-card-actions">
-            <button class="spranki-btn spranki-open-card" data-note-id="${card.noteId}">Preview</button>
-            <button class="spranki-btn spranki-link-card" data-note-id="${card.noteId}" data-topic="${escapeHTML(card.front.slice(0, 80))}">Link this ✓</button>
+            <button class="spranki-btn spranki-open-card" data-note-id="${card.noteId}">${ICONS.externalLink}Preview</button>
+            <button class="spranki-btn spranki-link-card" data-note-id="${card.noteId}" data-topic="${escapeHTML(card.front.slice(0, 80))}">${ICONS.link}Link</button>
           </div>
         </div>
       `).join("");
     }
 
   } else if (error) {
-    // No mapping — show the auto-suggest trigger
     bodyHTML = `
-      <div class="spranki-notice">No mapping yet for Q${qid}.<br><small>Link one from your deck or contribute on GitHub.</small></div>
-      <button id="spranki-find-matches" class="spranki-btn spranki-find-btn">🔍 Find matching Spranki cards</button>
+      <div class="spranki-notice">${ICONS.search} No mapping yet for Q${qid}.<br><small>Link a card from your deck below.</small></div>
+      <button id="spranki-find-matches" class="spranki-btn spranki-find-btn">${ICONS.search}Find matching Spranki cards</button>
     `;
 
   } else if (!cards || cards.length === 0) {
@@ -422,53 +446,54 @@ function buildOverlayHTML(response, source, qid, excludeNoteIds = new Set()) {
         .map(t => `<span class="spranki-tag">${escapeHTML(t)}</span>`)
         .join("");
       const dueBadge = card.dueStatus === "due"
-        ? `<span class="spranki-due-badge spranki-due-today">Due today</span>`
+        ? `<span class="spranki-due-badge spranki-due-today">${ICONS.clock}Due today</span>`
         : card.dueStatus === "new"
-        ? `<span class="spranki-due-badge spranki-due-new">New card</span>`
+        ? `<span class="spranki-due-badge spranki-due-new">${ICONS.sparkles}New</span>`
         : "";
+      const reviewed = card.tags.includes("sprankiReviewed");
       return `
         <div class="spranki-card">
           <div class="spranki-card-header-row">
-            <span class="spranki-linked-badge">✓ Linked</span>
+            <span class="spranki-linked-badge">${ICONS.check}Linked</span>
             ${dueBadge}
           </div>
           <div class="spranki-card-title">${escapeHTML(displayTitle)}</div>
           <div class="spranki-card-tags">${tagLabel}</div>
           <div class="spranki-card-actions">
-            <button class="spranki-btn spranki-open-card" data-note-id="${card.noteId}">Open in Anki</button>
-            <button class="spranki-btn spranki-secondary spranki-tag-done" data-note-id="${card.noteId}"
-              ${card.tags.includes("sprankiReviewed") ? "disabled" : ""}>
-              ${card.tags.includes("sprankiReviewed") ? "✓ Reviewed" : "Mark Reviewed"}
+            <button class="spranki-btn spranki-open-card" data-note-id="${card.noteId}">${ICONS.externalLink}Open in Anki</button>
+            <button class="spranki-btn spranki-secondary spranki-tag-done" data-note-id="${card.noteId}" ${reviewed ? "disabled" : ""}>
+              ${reviewed ? `${ICONS.checkCircle}Reviewed` : `${ICONS.bookOpen}Mark Reviewed`}
             </button>
-            <button class="spranki-btn spranki-secondary spranki-unlink" data-note-id="${card.noteId}" style="color:#f87171" title="Remove link">×</button>
+            <button class="spranki-btn spranki-secondary spranki-unlink" data-note-id="${card.noteId}" title="Remove link">${ICONS.x}</button>
           </div>
         </div>`;
     }).join("");
-    bodyHTML = cardListHTML + `<button id="spranki-add-link" class="spranki-btn spranki-find-btn" style="margin-top:6px">🔗 Link another card</button>`;
+    bodyHTML = cardListHTML + `<button id="spranki-add-link" class="spranki-btn spranki-find-btn" style="margin-top:6px">${ICONS.plusCircle}Link another card</button>`;
   }
 
   const contributeURL = qid
     ? `https://github.com/spranki-linker/spranki-linker/issues/new?title=Mapping:+${source.name}+Q${qid}`
     : "#";
 
+  const alreadyWrong = lastAnsweredState === qid;
   const sessionBadge = sessionWrongCount > 0
-    ? `<button id="spranki-session-btn" class="spranki-session-badge">${sessionWrongCount} wrong</button>`
-    : `<button id="spranki-session-btn" class="spranki-session-badge spranki-session-empty">Session</button>`;
+    ? `<button id="spranki-session-btn" class="spranki-session-badge">${ICONS.alertTriangle}${sessionWrongCount} wrong</button>`
+    : `<button id="spranki-session-btn" class="spranki-session-badge spranki-session-empty">${ICONS.history}Session</button>`;
 
   return `
     <div class="spranki-header" style="--source-color: ${source.color}">
-      <span class="spranki-logo">🃏 Spranki</span>
+      <span class="spranki-logo">Spranki</span>
       <span class="spranki-source">${qid ? `${source.name} Q${qid}` : `${source.name} — waiting…`}</span>
       ${sessionBadge}
-      <button id="spranki-toggle" class="spranki-collapse-btn">▼</button>
+      <button id="spranki-toggle" class="spranki-collapse-btn">${ICONS.chevronDown}</button>
     </div>
     <div class="spranki-body">
       ${bodyHTML}
       ${qid ? `
         <div class="spranki-mark-wrong-row">
           <button id="spranki-mark-wrong" class="spranki-btn spranki-secondary" style="font-size:10px;color:#f87171"
-            ${lastAnsweredState === qid ? "disabled" : ""}>
-            ${lastAnsweredState === qid ? "✗ Marked wrong" : "✗ Mark question wrong"}
+            ${alreadyWrong ? "disabled" : ""}>
+            ${alreadyWrong ? `${ICONS.xCircle}Marked wrong` : `${ICONS.alertTriangle}Mark question wrong`}
           </button>
         </div>` : ""}
       ${qid ? `<a class="spranki-contribute" href="${contributeURL}" target="_blank">+ Contribute mapping</a>` : ""}
@@ -479,11 +504,11 @@ function buildOverlayHTML(response, source, qid, excludeNoteIds = new Set()) {
 // ── Session review panel ──────────────────────────────────────
 function showSessionReview(overlay) {
   const body = overlay.querySelector(".spranki-body");
-  body.innerHTML = `<div class="spranki-notice spranki-loading">Loading session review…</div>`;
+  body.innerHTML = `<div class="spranki-notice spranki-loading"><span class="spranki-spinner"></span>Loading session review…</div>`;
 
   chrome.runtime.sendMessage({ type: "GET_SESSION_REVIEW", platform: activePlatform }, (response) => {
     if (chrome.runtime.lastError || !response) {
-      body.innerHTML = `<div class="spranki-notice">⚠️ Could not load session data.</div>`;
+      body.innerHTML = `<div class="spranki-notice">${ICONS.alertTriangle} Could not load session data.</div>`;
       return;
     }
 
@@ -491,10 +516,10 @@ function showSessionReview(overlay) {
 
     if (wrongCount === 0) {
       body.innerHTML = `
-        <div class="spranki-notice">No wrong answers recorded yet.<br><small>Answer some questions or use "Mark question wrong".</small></div>
+        <div class="spranki-notice">${ICONS.checkCircle} No wrong answers this session.<br><small>Keep going or check your history.</small></div>
         <div style="display:flex;gap:6px;margin-top:4px">
-          <button id="spranki-show-history" class="spranki-btn spranki-secondary" style="font-size:11px">📋 History</button>
-          <button id="spranki-session-back" class="spranki-btn spranki-secondary" style="font-size:11px">← Back</button>
+          <button id="spranki-show-history" class="spranki-btn spranki-secondary" style="font-size:11px">${ICONS.history}History</button>
+          <button id="spranki-session-back" class="spranki-btn spranki-secondary" style="font-size:11px">${ICONS.arrowLeft}Back</button>
         </div>`;
     } else {
       const groupsHTML = groups.map(g => {
@@ -514,19 +539,19 @@ function showSessionReview(overlay) {
 
         return `
           <div style="margin-bottom:8px">
-            <div style="font-size:10px;font-weight:700;color:#f87171;margin-bottom:2px">✗ ${label}</div>
+            <div style="font-size:10px;font-weight:700;color:#f87171;margin-bottom:2px;display:flex;align-items:center;gap:4px">${ICONS.xCircle}${label}</div>
             ${cardsHTML}
           </div>`;
       }).join("");
 
       body.innerHTML = `
-        <div style="font-size:11px;color:#f87171;font-weight:700;margin-bottom:6px">✗ ${wrongCount} wrong this session</div>
+        <div style="font-size:11px;color:#f87171;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:4px">${ICONS.alertTriangle}${wrongCount} wrong this session</div>
         ${groupsHTML}
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
-          ${allNoteIds?.length ? `<button id="spranki-open-session" class="spranki-btn" style="font-size:11px">Open all in Anki</button>` : ""}
-          <button id="spranki-clear-session" class="spranki-btn spranki-secondary" style="font-size:11px;color:#f87171">Clear &amp; save</button>
-          <button id="spranki-show-history" class="spranki-btn spranki-secondary" style="font-size:11px">📋 History</button>
-          <button id="spranki-session-back" class="spranki-btn spranki-secondary" style="font-size:11px">← Back</button>
+          ${allNoteIds?.length ? `<button id="spranki-open-session" class="spranki-btn" style="font-size:11px">${ICONS.externalLink}Open all in Anki</button>` : ""}
+          <button id="spranki-clear-session" class="spranki-btn spranki-secondary" style="font-size:11px;color:#f87171">${ICONS.trash}Clear &amp; save</button>
+          <button id="spranki-show-history" class="spranki-btn spranki-secondary" style="font-size:11px">${ICONS.history}History</button>
+          <button id="spranki-session-back" class="spranki-btn spranki-secondary" style="font-size:11px">${ICONS.arrowLeft}Back</button>
         </div>`;
     }
 
@@ -539,7 +564,7 @@ function showSessionReview(overlay) {
         sessionWrongCount = 0;
         const badge = overlay.querySelector(".spranki-session-badge");
         if (badge) {
-          badge.textContent = "Session";
+          badge.innerHTML = `${ICONS.history}Session`;
           badge.classList.add("spranki-session-empty");
         }
         showSessionReview(overlay);
@@ -561,11 +586,11 @@ function showSessionReview(overlay) {
 // ── Session history panel ─────────────────────────────────────
 function showSessionHistory(overlay) {
   const body = overlay.querySelector(".spranki-body");
-  body.innerHTML = `<div class="spranki-notice spranki-loading">Loading history…</div>`;
+  body.innerHTML = `<div class="spranki-notice spranki-loading"><span class="spranki-spinner"></span>Loading history…</div>`;
 
   chrome.runtime.sendMessage({ type: "GET_SESSION_HISTORY", platform: activePlatform }, (response) => {
     if (chrome.runtime.lastError || !response) {
-      body.innerHTML = `<div class="spranki-notice">⚠️ Could not load history.</div>`;
+      body.innerHTML = `<div class="spranki-notice">${ICONS.alertTriangle} Could not load history.</div>`;
       return;
     }
 
@@ -573,8 +598,8 @@ function showSessionHistory(overlay) {
 
     if (!history.length) {
       body.innerHTML = `
-        <div class="spranki-notice">No past sessions yet.<br><small>Clear a session to save it here.</small></div>
-        <button id="spranki-history-back" class="spranki-btn spranki-secondary" style="font-size:11px;margin-top:4px">← Back</button>`;
+        <div class="spranki-notice">${ICONS.history} No past sessions yet.<br><small>Clear a session to save it here.</small></div>
+        <button id="spranki-history-back" class="spranki-btn spranki-secondary" style="font-size:11px;margin-top:4px">${ICONS.arrowLeft}Back</button>`;
     } else {
       const historyHTML = history.map((entry, i) => {
         const formattedDate = new Date(entry.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -587,8 +612,8 @@ function showSessionHistory(overlay) {
           <div class="spranki-history-entry" data-index="${i}">
             <div class="spranki-history-header">
               <span style="font-size:11px;font-weight:700;color:#e0e4f4">${formattedDate}</span>
-              <span style="font-size:10px;color:#f87171;font-weight:700">✗ ${entry.wrongCount} wrong</span>
-              <span class="spranki-history-toggle" style="font-size:10px;color:rgba(200,210,240,0.5);cursor:pointer;margin-left:auto">▼</span>
+              <span style="font-size:10px;color:#f87171;font-weight:700;display:inline-flex;align-items:center;gap:3px">${ICONS.xCircle}${entry.wrongCount} wrong</span>
+              <span class="spranki-history-toggle" style="color:rgba(200,210,240,0.5);cursor:pointer;margin-left:auto;display:inline-flex;align-items:center">${ICONS.chevronDown}</span>
             </div>
             <div class="spranki-history-questions" style="display:none;margin-top:4px;gap:3px">
               ${questionsHTML}
@@ -599,7 +624,7 @@ function showSessionHistory(overlay) {
       body.innerHTML = `
         <div style="font-size:11px;color:rgba(200,210,240,0.6);margin-bottom:6px">Last ${history.length} session${history.length > 1 ? "s" : ""}</div>
         ${historyHTML}
-        <button id="spranki-history-back" class="spranki-btn spranki-secondary" style="font-size:11px;margin-top:6px">← Back</button>`;
+        <button id="spranki-history-back" class="spranki-btn spranki-secondary" style="font-size:11px;margin-top:6px">${ICONS.arrowLeft}Back</button>`;
 
       // Collapsible entries
       body.querySelectorAll(".spranki-history-entry").forEach(entry => {
@@ -608,7 +633,7 @@ function showSessionHistory(overlay) {
           const toggle = entry.querySelector(".spranki-history-toggle");
           const isHidden = questions.style.display === "none";
           questions.style.display = isHidden ? "flex" : "none";
-          toggle.textContent = isHidden ? "▲" : "▼";
+          toggle.innerHTML = isHidden ? ICONS.chevronDown : ICONS.chevronRight;
         });
       });
     }
