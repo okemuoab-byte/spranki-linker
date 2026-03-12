@@ -147,7 +147,10 @@ async function init() {
               sessionWrongCount = res?.count ?? sessionWrongCount;
               // Update the session badge in overlay if visible
               const badge = document.getElementById("spranki-session-btn");
-              if (badge) badge.textContent = `${sessionWrongCount} wrong`;
+              if (badge) {
+                badge.innerHTML = `${ICONS.alertTriangle}${sessionWrongCount} wrong`;
+                badge.classList.remove("spranki-session-empty");
+              }
             });
           }
 
@@ -284,7 +287,10 @@ function renderOverlay(response, source, qid, excludeNoteIds = new Set()) {
       lastAnsweredState = currentQID;
       // Update badge
       const badge = overlay.querySelector(".spranki-session-badge");
-      if (badge) badge.innerHTML = `${ICONS.alertTriangle}${sessionWrongCount} wrong`;
+      if (badge) {
+        badge.innerHTML = `${ICONS.alertTriangle}${sessionWrongCount} wrong`;
+        badge.classList.remove("spranki-session-empty");
+      }
     });
   });
 

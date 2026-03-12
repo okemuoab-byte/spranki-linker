@@ -526,6 +526,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         if (mapping?.noteIds?.length) {
           noteIds = mapping.noteIds;
+        } else if (mapping?.tags?.length) {
+          try {
+            const query = mapping.tags.map(t => `tag:${t}`).join(" OR ");
+            noteIds = await ankiConnect("findNotes", { query });
+          } catch (e) { /* skip */ }
         } else if (mapping?.search) {
           try {
             noteIds = await ankiConnect("findNotes", {
@@ -584,7 +589,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (history.length > 10) history.length = 10; // keep last 10
       }
 
-      return chrome.storage.local.set({ sessionHistory: history, sessionWrong: {} });
+      const updatedWrong = stored.sessionWrong || {};
+      delete updatedWrong[message.platform];
+      return chrome.storage.local.set({ sessionHistory: history, sessionWrong: updatedWrong });
     }).then(() => sendResponse({ ok: true }))
       .catch(() => sendResponse({ ok: false }));
     return true;
