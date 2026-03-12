@@ -415,16 +415,23 @@ function buildOverlayHTML(response, source, qid, excludeNoteIds = new Set()) {
     const cardListHTML = cards.map(card => {
       const title = card.front || "Card";
       const displayTitle = title.length > 120 ? title.slice(0, 120) + "…" : title;
-      // Show only the 2 deepest tag segments: "Keratitis · Microbial"
       const tagLabel = (card.tags || [])
         .filter(t => t.includes("Spranki"))
         .map(t => t.split("::").slice(-2).join(" · "))
         .slice(0, 1)
         .map(t => `<span class="spranki-tag">${escapeHTML(t)}</span>`)
         .join("");
+      const dueBadge = card.dueStatus === "due"
+        ? `<span class="spranki-due-badge spranki-due-today">Due today</span>`
+        : card.dueStatus === "new"
+        ? `<span class="spranki-due-badge spranki-due-new">New card</span>`
+        : "";
       return `
         <div class="spranki-card">
-          <div class="spranki-linked-badge">✓ Linked</div>
+          <div class="spranki-card-header-row">
+            <span class="spranki-linked-badge">✓ Linked</span>
+            ${dueBadge}
+          </div>
           <div class="spranki-card-title">${escapeHTML(displayTitle)}</div>
           <div class="spranki-card-tags">${tagLabel}</div>
           <div class="spranki-card-actions">

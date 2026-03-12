@@ -51,6 +51,37 @@ async function getMappings() {
   return cachedMappings;
 }
 
+// ── Due status helper ─────────────────────────────────────────
+// Returns a Map of noteId → 'due' | 'new' | null using Anki's own search logic.
+// Two batched findCards calls — no epoch arithmetic needed.
+async function getDueStatus(noteIds) {
+  if (!noteIds.length) return new Map();
+  const nidQuery = noteIds.map(id => `nid:${id}`).join(" OR ");
+  const [dueCardIds, newCardIds] = await Promise.all([
+    ankiConnect("findCards", { query: `(${nidQuery}) is:due` }),
+    ankiConnect("findCards", { query: `(${nidQuery}) is:new` }),
+  ]);
+
+  const status = new Map();
+
+  // Map card IDs back to note IDs via cardsInfo
+  const allCardIds = [...new Set([...dueCardIds, ...newCardIds])];
+  if (allCardIds.length) {
+    const infos = await ankiConnect("cardsInfo", { cards: allCardIds });
+    const dueCardSet = new Set(dueCardIds);
+    for (const info of infos) {
+      const nid = info.note;
+      // 'due' takes priority over 'new' if somehow both
+      if (dueCardSet.has(info.cardId)) {
+        status.set(nid, "due");
+      } else if (!status.has(nid)) {
+        status.set(nid, "new");
+      }
+    }
+  }
+  return status;
+}
+
 // ── Core lookup logic ────────────────────────────────────────
 async function lookupCards(platform, qid) {
   const mappings = await getMappings();
@@ -72,11 +103,16 @@ async function lookupCards(platform, qid) {
 
   if (noteIds.length === 0) return { cards: [] };
 
-  const notesInfo = await ankiConnect("notesInfo", { notes: noteIds });
+  const [notesInfo, dueStatus] = await Promise.all([
+    ankiConnect("notesInfo", { notes: noteIds }),
+    getDueStatus(noteIds),
+  ]);
+
   const cards = notesInfo.map(n => ({
     noteId: n.noteId,
     front: extractFront(n),
     tags: n.tags || [],
+    dueStatus: dueStatus.get(n.noteId) || null,
   }));
   return { cards };
 }
