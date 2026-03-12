@@ -175,6 +175,22 @@ async function claudeTagSearch(title, apiKey) {
     )
   )].sort().slice(0, 300).join("\n");
 
+  const requestBody = JSON.stringify({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 80,
+    messages: [{
+      role: "user",
+      content:
+        `Anki tag paths in this deck (Category::SubCategory format):\n${tagPaths}\n\n` +
+        `PassMed topic: "${title}"\n\n` +
+        `Find the best matching tag path above. ` +
+        `Return an Anki search using BOTH the category and subcategory as separate tag wildcards for specificity. ` +
+        `Format: tag:*Category* tag:*SubCategory*\n` +
+        `If only one level exists, use: tag:*Word*\n` +
+        `Reply with only the search string, nothing else.`
+    }]
+  });
+
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -182,24 +198,26 @@ async function claudeTagSearch(title, apiKey) {
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 80,
-      messages: [{
-        role: "user",
-        content:
-          `Anki tag paths in this deck (Category::SubCategory format):\n${tagPaths}\n\n` +
-          `PassMed topic: "${title}"\n\n` +
-          `Find the best matching tag path above. ` +
-          `Return an Anki search using BOTH the category and subcategory as separate tag wildcards for specificity. ` +
-          `Format: tag:*Category* tag:*SubCategory*\n` +
-          `If only one level exists, use: tag:*Word*\n` +
-          `Reply with only the search string, nothing else.`
-      }]
-    })
+    body: requestBody,
   });
 
-  if (!res.ok) throw new Error(`Claude API ${res.status}`);
+  if (!res.ok) {
+    if (res.status === 429) {
+      // Rate limited — wait for retry-after header (default 5s) then retry once
+      const wait = parseInt(res.headers.get("retry-after") || "5", 10) * 1000;
+      await new Promise(r => setTimeout(r, wait));
+      const retry = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+        body: requestBody,
+      });
+      if (!retry.ok) throw new Error(`Claude API ${retry.status}`);
+      const retryData = await retry.json();
+      const retrySearch = retryData.content[0].text.trim();
+      return retrySearch.startsWith("tag:") ? retrySearch : null;
+    }
+    throw new Error(`Claude API ${res.status}`);
+  }
   const data = await res.json();
   const search = data.content[0].text.trim();
   return search.startsWith("tag:") ? search : null;

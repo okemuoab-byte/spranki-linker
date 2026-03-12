@@ -102,6 +102,8 @@ let activeTitle = null;
 let activeQuestion = null;
 let sessionWrongCount = 0;        // count of wrong answers this session
 let lastAnsweredState = null;     // tracks last known answeredCorrectly to avoid double-recording
+let overlayPosition = null;       // persists drag position across re-renders { left, top }
+let dragAbortController = null;   // aborts stale drag listeners on each re-render
 
 // ── Main init ────────────────────────────────────────────────
 async function init() {
@@ -305,6 +307,10 @@ function renderOverlay(response, source, qid, excludeNoteIds = new Set()) {
   // Open card in Anki browser
   overlay.querySelectorAll(".spranki-open-card").forEach(btn => {
     btn.addEventListener("click", () => {
+      const prev = btn.innerHTML;
+      btn.innerHTML = `${ICONS.check}Opening…`;
+      btn.disabled = true;
+      setTimeout(() => { btn.innerHTML = prev; btn.disabled = false; }, 1500);
       chrome.runtime.sendMessage({ type: "OPEN_IN_ANKI", noteId: btn.dataset.noteId });
     });
   });
@@ -659,29 +665,50 @@ function escapeHTML(str) {
 }
 
 function makeDraggable(el) {
+  // Abort stale listeners from previous render
+  if (dragAbortController) dragAbortController.abort();
+  dragAbortController = new AbortController();
+  const { signal } = dragAbortController;
+
+  // Restore last known drag position so overlay doesn't jump to bottom-right on re-render
+  if (overlayPosition) {
+    el.style.left = `${overlayPosition.left}px`;
+    el.style.top = `${overlayPosition.top}px`;
+    el.style.right = "auto";
+    el.style.bottom = "auto";
+  }
+
   let isDragging = false, startX, startY, origLeft, origTop;
   const header = el.querySelector(".spranki-header");
   header.style.cursor = "grab";
 
   header.addEventListener("mousedown", e => {
-    if (e.target.closest("button")) return; // don't drag when clicking header buttons
+    if (e.target.closest("button")) return;
     isDragging = true;
     startX = e.clientX;
     startY = e.clientY;
     const rect = el.getBoundingClientRect();
     origLeft = rect.left;
     origTop = rect.top;
-  });
+    header.style.cursor = "grabbing";
+  }, { signal });
 
   document.addEventListener("mousemove", e => {
     if (!isDragging) return;
-    el.style.left = `${origLeft + e.clientX - startX}px`;
-    el.style.top = `${origTop + e.clientY - startY}px`;
+    const left = origLeft + e.clientX - startX;
+    const top = origTop + e.clientY - startY;
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
     el.style.right = "auto";
     el.style.bottom = "auto";
-  });
+    overlayPosition = { left, top }; // persist for next render
+  }, { signal });
 
-  document.addEventListener("mouseup", () => { isDragging = false; });
+  document.addEventListener("mouseup", () => {
+    if (!isDragging) return;
+    isDragging = false;
+    header.style.cursor = "grab";
+  }, { signal });
 }
 
 init();
