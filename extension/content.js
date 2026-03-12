@@ -504,7 +504,7 @@ function buildOverlayHTML(response, source, qid, excludeNoteIds = new Set()) {
             ${alreadyWrong ? `${ICONS.xCircle}Marked wrong` : `${ICONS.alertTriangle}Mark question wrong`}
           </button>
         </div>` : ""}
-      ${/* contribute link hidden until public repo exists */ ""}
+      ${qid ? `<a class="spranki-contribute" href="https://github.com/okemuoab-byte/spranki-linker/issues/new?title=Mapping:+${source.name}+Q${qid}" target="_blank">+ Contribute mapping</a>` : ""}
     </div>
   `;
 }

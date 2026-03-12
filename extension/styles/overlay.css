@@ -267,6 +267,23 @@
 }
 
 
+/* ── Contribute link ── */
+.spranki-contribute {
+  font-size: 11px;
+  color: rgba(180,200,255,0.45);
+  text-decoration: none;
+  text-align: center;
+  padding: 4px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 2px;
+  transition: color 0.15s;
+  display: block;
+}
+
+.spranki-contribute:hover {
+  color: rgba(180,200,255,0.85);
+}
+
 /* ── Session badge ── */
 .spranki-session-badge {
   font-size: 10px;
