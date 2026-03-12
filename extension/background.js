@@ -603,6 +603,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === "CLEAR_REVIEW_TAG") {
+    // Remove sprankiLinker::review from all cards that have it
+    ankiConnect("findNotes", { query: "tag:sprankiLinker::review" })
+      .then(noteIds => {
+        if (!noteIds.length) return sendResponse({ ok: true, cleared: 0 });
+        return ankiConnect("removeTags", { notes: noteIds, tags: "sprankiLinker::review" })
+          .then(() => sendResponse({ ok: true, cleared: noteIds.length }));
+      })
+      .catch(err => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
+
   if (message.type === "CLEAR_SESSION") {
     // Archive current session to history before clearing
     chrome.storage.local.get(["sessionWrong", "sessionHistory"]).then(stored => {

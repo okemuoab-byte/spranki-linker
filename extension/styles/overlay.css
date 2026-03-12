@@ -268,21 +268,6 @@
   white-space: nowrap;
 }
 
-/* ── Contribute link ── */
-.spranki-contribute {
-  font-size: 11px;
-  color: rgba(180,200,255,0.55);
-  text-decoration: none;
-  text-align: center;
-  padding: 4px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-  margin-top: 2px;
-  transition: color 0.15s;
-}
-
-.spranki-contribute:hover {
-  color: rgba(180,200,255,0.9);
-}
 
 /* ── Session badge ── */
 .spranki-session-badge {

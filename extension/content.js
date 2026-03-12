@@ -483,10 +483,6 @@ function buildOverlayHTML(response, source, qid, excludeNoteIds = new Set()) {
     bodyHTML = cardListHTML + `<button id="spranki-add-link" class="spranki-btn spranki-find-btn" style="margin-top:6px">${ICONS.plusCircle}Link another card</button>`;
   }
 
-  const contributeURL = qid
-    ? `https://github.com/spranki-linker/spranki-linker/issues/new?title=Mapping:+${source.name}+Q${qid}`
-    : "#";
-
   const alreadyWrong = lastAnsweredState === qid;
   const sessionBadge = sessionWrongCount > 0
     ? `<button id="spranki-session-btn" class="spranki-session-badge">${ICONS.alertTriangle}${sessionWrongCount} wrong</button>`
@@ -508,7 +504,7 @@ function buildOverlayHTML(response, source, qid, excludeNoteIds = new Set()) {
             ${alreadyWrong ? `${ICONS.xCircle}Marked wrong` : `${ICONS.alertTriangle}Mark question wrong`}
           </button>
         </div>` : ""}
-      ${qid ? `<a class="spranki-contribute" href="${contributeURL}" target="_blank">+ Contribute mapping</a>` : ""}
+      ${/* contribute link hidden until public repo exists */ ""}
     </div>
   `;
 }
@@ -564,6 +560,7 @@ function showSessionReview(overlay) {
             <button id="spranki-study-session" class="spranki-btn" style="font-size:11px;background:#7c5cbf">${ICONS.rotateCcw}Study in Anki</button>
             <button id="spranki-open-session" class="spranki-btn spranki-secondary" style="font-size:11px">${ICONS.externalLink}Browse cards</button>
           ` : ""}
+          <button id="spranki-clear-review-tag" class="spranki-btn spranki-secondary" style="font-size:11px;color:rgba(200,210,240,0.5)">${ICONS.trash}Clear review queue</button>
           <button id="spranki-clear-session" class="spranki-btn spranki-secondary" style="font-size:11px;color:#f87171">${ICONS.trash}Clear &amp; save</button>
           <button id="spranki-show-history" class="spranki-btn spranki-secondary" style="font-size:11px">${ICONS.history}History</button>
           <button id="spranki-session-back" class="spranki-btn spranki-secondary" style="font-size:11px">${ICONS.arrowLeft}Back</button>
@@ -586,6 +583,22 @@ function showSessionReview(overlay) {
 
     body.querySelector("#spranki-open-session")?.addEventListener("click", () => {
       chrome.runtime.sendMessage({ type: "OPEN_SESSION_IN_ANKI", noteIds: allNoteIds });
+    });
+
+    body.querySelector("#spranki-clear-review-tag")?.addEventListener("click", () => {
+      const btn = body.querySelector("#spranki-clear-review-tag");
+      btn.innerHTML = `<span class="spranki-spinner"></span>Clearing…`;
+      btn.disabled = true;
+      chrome.runtime.sendMessage({ type: "CLEAR_REVIEW_TAG" }, (res) => {
+        if (res?.ok) {
+          btn.innerHTML = res.cleared > 0
+            ? `${ICONS.checkCircle}Cleared ${res.cleared} cards`
+            : `${ICONS.checkCircle}Queue already empty`;
+        } else {
+          btn.innerHTML = `${ICONS.alertTriangle}Failed`;
+          btn.disabled = false;
+        }
+      });
     });
 
     body.querySelector("#spranki-clear-session")?.addEventListener("click", () => {

@@ -114,6 +114,35 @@
 
     .api-row { display: flex; gap: 6px; }
     .api-row .btn { flex: 1; padding: 6px; font-size: 11px; }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: rgba(200,210,240,0.35);
+      padding: 0 2px;
+    }
+
+    .mapping-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+    }
+
+    .mapping-row { display: flex; gap: 6px; }
+    .mapping-row .btn { flex: 1; padding: 7px 6px; font-size: 11px; }
+
+    .import-status {
+      font-size: 10px;
+      text-align: center;
+      color: rgba(200,210,240,0.5);
+      min-height: 14px;
+    }
   </style>
 </head>
 <body>
@@ -147,6 +176,18 @@
     </div>
 
     <button class="btn btn-primary" id="btn-reload">↻ Reload mappings</button>
+
+    <div class="mapping-section">
+      <div class="api-label">
+        <span>Mappings</span>
+        <span id="mapping-import-status" class="import-status"></span>
+      </div>
+      <div class="mapping-row">
+        <button class="btn" id="btn-export">↓ Export</button>
+        <button class="btn" id="btn-import">↑ Import</button>
+      </div>
+      <input type="file" id="import-input" accept=".json" style="display:none">
+    </div>
 
     <p class="info-text">
       Open a PassMed or Quesmed question to see linked Spranki cards.
