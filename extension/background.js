@@ -229,7 +229,8 @@ async function claudeTagSearch(title, apiKey) {
 
 // ── Fuzzy scoring ────────────────────────────────────────────
 // Tags (e.g. "!Spranki Clinical::Cardiology::HeartFailure") carry
-// more signal than card text for medical content — weighted 60/40.
+// more signal than card text for medical content — weighted 50/30/20
+// (title→tag / question→tag / text→front).
 function fuzzyScore(questionText, cardFront, cardTags = [], title = "") {
   const tokenize = s =>
     s.toLowerCase()
@@ -324,6 +325,9 @@ async function getSuggestions(questionText, title = "") {
         return [];
       } catch (e) {
         console.warn("Anki search failed:", e.message);
+        // Anki error after Claude returned a search string — return empty rather
+        // than falling through to full-deck fuzzy which surfaces irrelevant cards.
+        return [];
       }
     }
   }
