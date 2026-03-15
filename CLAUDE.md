@@ -85,9 +85,21 @@ Local HTTP API at `http://localhost:8765`. Actions used: `findNotes`, `notesInfo
 3. `search` string → `findNotes` with `deck:"!Spranki Clinical" <search>`
 
 ### Mapping Storage
-`mappings.json` is the bundled base (currently empty — no community mappings). User-confirmed links go to `chrome.storage.local` under `customMappings`. `getMappings()` deep-merges them (custom entries win per-QID). `cachedMappings` is a module-level cache; set `null` to invalidate.
+Three-layer merge (lowest → highest priority):
+1. `public/mappings.json` — bundled base (currently empty)
+2. `chrome.storage.local` `communityMappings` — synced from Supabase (24h alarm + on-install)
+3. `chrome.storage.local` `customMappings` — user-confirmed links (always win)
 
-### Suggestion Pipeline (`getSuggestions` in background.js)
+`getMappings()` deep-merges all three; `cachedMappings` module-level cache, invalidated by `invalidateMappingsCache()`.
+
+### Community Mappings (Supabase — Phase B)
+- **Upload**: every `SAVE_MAPPING` fires-and-forgets a POST to `rpc/upsert_community_mapping` (increments `confirmed_count` on conflict)
+- **Sync**: `chrome.alarms` fires every 24h (and on install) → `fetchTopMappings()` fetches top 500 rows → stored in `communityMappings`
+- **Live fallback**: if QID not in any local store, `fetchMappingForQID()` queries Supabase directly before giving up
+- Supabase anon key embedded in `src/constants.ts` (RLS enforces public-read / anon-insert only, no PII)
+- Popup shows community sync count; "↻ Sync community" button triggers `SYNC_COMMUNITY_MAPPINGS`
+
+### Suggestion Pipeline (`getSuggestions` in background.ts)
 **Path 1 — Claude (most accurate, requires API key):**
 1. Check `titleCache` in storage — if seen before, reuse cached Anki search string.
 2. If not cached: call `claude-haiku-4-5-20251001` with the full deck tag path list + question title. Claude returns an Anki search like `tag:*Cardiology* tag:*HeartFailure*`.
@@ -99,7 +111,7 @@ Full-deck fuzzy score. Threshold: `> 0.20`. Returns top 5.
 
 **Fuzzy scoring (`fuzzyScore`):** 50% title→tag + 30% question→tag + 20% text→front. Tags tokenised by CamelCase split + `::` segments. Cloze markers and HTML stripped from card fronts.
 
-### Due Status (`getDueStatus` in background.js)
+### Due Status (`getDueStatus` in background.ts)
 Two parallel `findCards` calls: `(nids) is:due` and `(nids) is:new`. Results mapped back to note IDs via `cardsInfo`. Returns `Map<noteId, 'due'|'new'|null>`. Attached to each card on `LOOKUP_CARDS`.
 
 ### Session Tracking (`chrome.storage.local`)
@@ -113,7 +125,7 @@ Two parallel `findCards` calls: `(nids) is:due` and `(nids) is:new`. Results map
 - `sprankiReviewed` — card marked as reviewed via "Mark Reviewed" button.
 - `sprankiLinker::review` — added to wrong-session cards by "Study in Anki" button; opens Anki browser filtered to this tag.
 
-### Overlay UI (content.js)
+### Overlay UI (content.ts)
 - Built with `innerHTML` / `buildOverlayHTML()` — re-rendered on every state change.
 - Icons: Lucide SVG paths extracted from `lucide-react v0.462.0`, inlined as SVG strings via `_ico()` helper.
 - Drag: position saved in `overlayPosition` module variable, restored on re-render. `AbortController` cleans up stale `document` listeners on each render.
@@ -122,7 +134,7 @@ Two parallel `findCards` calls: `(nids) is:due` and `(nids) is:new`. Results map
 ### SPA Navigation
 Patched `history.pushState` + `history.replaceState` + `popstate` + `MutationObserver` fallback. On navigate: `currentQID = null` → `checkAndRenderOverlay`.
 
-## Message Types (content.js → background.js)
+## Message Types (content.ts → background.ts)
 
 | Type | Payload | Response |
 |------|---------|----------|
@@ -143,6 +155,8 @@ Patched `history.pushState` + `history.replaceState` + `popstate` + `MutationObs
 | `GET_CACHE_STATS` | — | `{hasKey, cached}` |
 | `TEST_ANKICONNECT` | — | `{ok, version?}` |
 | `RELOAD_MAPPINGS` | — | `{ok}` |
+| `SYNC_COMMUNITY_MAPPINGS` | — | `{synced: number}` |
+| `CLEAR_REVIEW_TAG` | — | `{ok, cleared: number}` |
 
 ## Development Workflow
 
@@ -156,20 +170,20 @@ Patched `history.pushState` + `history.replaceState` + `popstate` + `MutationObs
 
 > The legacy `extension/` folder (plain JS) is still loadable if needed for comparison.
 
-## Current State (as of 2026-03-13)
+## Current State (as of 2026-03-15)
 
 - **Phase A complete**: Full TypeScript + Vite build pipeline. Load `dist/` in Chrome.
+- **Phase B complete**: Supabase community mapping backend — upload on link, 24h sync, live fallback.
 - Fully functional end-to-end on PassMed; Quesmed URL structure unverified
 - Auto-suggest: fires automatically on unmapped questions; Claude path (if API key set) searches by title→tag, fuzzy fallback otherwise
 - Due/New badges on linked cards (AnkiConnect `is:due` / `is:new`)
 - Session wrong tracking with review panel, history (last 10 sessions), and "Study in Anki"
-- Popup: AnkiConnect status, Claude API key management, export/import mappings JSON
-- Bundled `mappings.json` is empty; users build personal mappings via auto-suggest
+- Popup: AnkiConnect status, Claude API key management, export/import mappings JSON, community sync status
+- Bundled `mappings.json` is empty; mappings built via user links + community Supabase sync
 - `mapping_builder.py` exists for offline bulk mapping, `--use-claude` flag stubbed
 
 ### Next phases
-- **Phase B**: Supabase community mapping backend (shared DB, upload on SAVE_MAPPING, sync on startup)
 - **Phase C**: Transformers.js semantic embeddings (local, IndexedDB, no API key)
-- **Phase D**: AI card generation (Claude generates cloze cards for unmapped questions)
+- **Phase D**: AI card generation — skipped (Claude API auth issues; may revisit)
 - **Phase E**: Chrome Side Panel analytics dashboard (React + Recharts)
 - **Phase F**: Platform expansion (Pastest, OnExamination)

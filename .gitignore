@@ -19,3 +19,4 @@ api_key.txt
 dist/
 node_modules/
 *.tsbuildinfo
+config.bat
