@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Spranki Linker",
+  "version": "0.2.0",
+  "description": "Links PassMed & Quesmed questions to Spranki Anki deck cards via AnkiConnect",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://www.passmedicine.com/*",
+    "https://quesmed.com/*",
+    "http://localhost:8765/*",
+    "https://api.anthropic.com/*",
+    "https://*.supabase.co/*"
+  ],
+  "background": {
+    "service_worker": "src/background.ts"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.passmedicine.com/*",
+        "https://quesmed.com/*"
+      ],
+      "js": ["src/content.ts"],
+      "css": ["src/styles/overlay.css"]
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

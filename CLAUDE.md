@@ -11,19 +11,61 @@ The extension shows a floating overlay on question pages with the linked Anki ca
 ## Architecture
 
 ```
-extension/          ← Load this folder as unpacked extension in Chrome
-  manifest.json     ← MV3: permissions, host_permissions, content_scripts, service_worker
-  background.js     ← Service worker: AnkiConnect calls, mapping lookup, fuzzy/Claude scoring
-  content.js        ← Injected into PassMed/Quesmed: QID extraction, overlay rendering
-  mappings.json     ← Bundled QID→noteId/tag/search mappings (base; user entries override)
-  popup.html/js     ← Extension popup: status, Claude API key, export/import mappings
+src/                ← TypeScript source (Phase A+)
+  manifest.json     ← MV3 manifest with TS source paths (vite-plugin-web-extension reads this)
+  background.ts     ← Service worker: AnkiConnect calls, mapping lookup, fuzzy/Claude scoring
+  content.ts        ← Injected into PassMed/Quesmed: QID extraction, overlay rendering
+  popup.ts          ← Popup logic
+  popup.html        ← Popup HTML (references popup.ts via <script type="module">)
+  types.ts          ← Shared types: AnkiCard, Mapping, Platform, OverlayResponse, etc.
+  constants.ts      ← ANKICONNECT_URL, DECK_NAME, CACHE_TTL
   styles/
     overlay.css     ← Overlay UI styles (dark navy theme, Lucide icons, CSS animations)
+  utils/
+    anki.ts         ← ankiConnect() + action wrappers (findNotes, notesInfo, getDueStatus…)
+    fuzzy.ts        ← fuzzyScore(), tokenize()
+    mappings.ts     ← getMappings(), saveMapping(), removeFromMapping(), invalidateMappingsCache()
+    icons.ts        ← ICONS constant + _ico() helper
+    html.ts         ← escapeHTML()
+  overlay/
+    build.ts        ← buildOverlayHTML() (pure function)
+    drag.ts         ← makeDraggable() (stateful: persists overlayPosition across re-renders)
+
+public/             ← Static assets copied as-is to dist/
+  mappings.json     ← Bundled QID→noteId/tag/search mappings (empty base; user entries override)
   icons/            ← icon16/48/128.png
+
+dist/               ← Build output (load this in Chrome; gitignored)
+  manifest.json     ← Final MV3 manifest with dist paths
+  src/
+    background.js   ← Built service worker
+    content.js      ← Built content script
+    popup.html      ← Built popup
+    popup.js        ← Built popup script
+    styles/
+      overlay.css   ← Built overlay CSS
+  icons/            ← Copied icons
+  mappings.json     ← Copied mappings
+
+extension/          ← Legacy plain-JS extension (still loadable; kept for reference)
+  background.js, content.js, popup.js, manifest.json…
 
 mapping-tools/
   mapping_builder.py  ← Offline tool: fetches Spranki cards from Anki, fuzzy-matches CSV export
 ```
+
+## Build System
+
+```bash
+npm install          # Install devDependencies (TypeScript, Vite, vite-plugin-web-extension)
+npm run build        # Compile src/ → dist/ (load dist/ in Chrome)
+npm run dev          # Watch mode: rebuild on save
+```
+
+- **TypeScript 5.4** with strict mode; `@types/chrome` for Chrome API types
+- **Vite 5** + **vite-plugin-web-extension 4** for MV3 multi-entry build
+- Entry points discovered from `src/manifest.json`
+- `public/` contents (icons, mappings.json) copied verbatim to `dist/`
 
 ## Key Technical Details
 
@@ -104,15 +146,19 @@ Patched `history.pushState` + `history.replaceState` + `popstate` + `MutationObs
 
 ## Development Workflow
 
-1. Edit files in `extension/`
-2. In Chrome: `chrome://extensions` → Developer Mode → Load unpacked → select `extension/`
-3. After editing `background.js`: click the refresh icon on the extension card
-4. After editing `content.js` or `manifest.json`: reload extension AND refresh the PassMed/Quesmed tab
-5. Debug background: click "service worker" link → DevTools console
-6. Debug content script: open DevTools on the PassMed/Quesmed tab → Console
+1. Edit files in `src/`
+2. Run `npm run build` (or `npm run dev` for watch mode) to compile to `dist/`
+3. In Chrome: `chrome://extensions` → Developer Mode → Load unpacked → select **`dist/`**
+4. After editing any `src/` file and rebuilding: click the refresh icon on the extension card
+5. After editing `src/content.ts` or `src/manifest.json`: reload extension AND refresh the PassMed/Quesmed tab
+6. Debug background: click "service worker" link on the extension card → DevTools console
+7. Debug content script: open DevTools on the PassMed/Quesmed tab → Console
 
-## Current State (as of 2026-03-12)
+> The legacy `extension/` folder (plain JS) is still loadable if needed for comparison.
 
+## Current State (as of 2026-03-13)
+
+- **Phase A complete**: Full TypeScript + Vite build pipeline. Load `dist/` in Chrome.
 - Fully functional end-to-end on PassMed; Quesmed URL structure unverified
 - Auto-suggest: fires automatically on unmapped questions; Claude path (if API key set) searches by title→tag, fuzzy fallback otherwise
 - Due/New badges on linked cards (AnkiConnect `is:due` / `is:new`)
@@ -120,3 +166,10 @@ Patched `history.pushState` + `history.replaceState` + `popstate` + `MutationObs
 - Popup: AnkiConnect status, Claude API key management, export/import mappings JSON
 - Bundled `mappings.json` is empty; users build personal mappings via auto-suggest
 - `mapping_builder.py` exists for offline bulk mapping, `--use-claude` flag stubbed
+
+### Next phases
+- **Phase B**: Supabase community mapping backend (shared DB, upload on SAVE_MAPPING, sync on startup)
+- **Phase C**: Transformers.js semantic embeddings (local, IndexedDB, no API key)
+- **Phase D**: AI card generation (Claude generates cloze cards for unmapped questions)
+- **Phase E**: Chrome Side Panel analytics dashboard (React + Recharts)
+- **Phase F**: Platform expansion (Pastest, OnExamination)

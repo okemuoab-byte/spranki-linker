@@ -1,0 +1,15 @@
+{
+  "name": "spranki-linker",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "typescript": "^5.4",
+    "vite": "^5",
+    "vite-plugin-web-extension": "^4"
+  }
+}

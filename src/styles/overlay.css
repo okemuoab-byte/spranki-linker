@@ -1,0 +1,459 @@
+/* ============================================================
+   Spranki Linker — Overlay styles
+   Injected into PassMed and Quesmed pages
+   ============================================================ */
+
+#spranki-overlay {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 320px;
+  max-height: 480px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  color: #e8eaf0;
+  z-index: 2147483647;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+.spranki-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, var(--source-color, #4f8ef7) 0%, rgba(255,255,255,0.05) 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+  user-select: none;
+  min-height: 40px;
+}
+
+.spranki-logo {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.spranki-source {
+  flex: 1;
+  font-size: 11px;
+  color: rgba(255,255,255,0.75);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spranki-collapse-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.spranki-collapse-btn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+/* ── Body ── */
+.spranki-body {
+  overflow-y: auto;
+  max-height: 440px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spranki-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.spranki-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.spranki-body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+}
+
+/* ── Card ── */
+.spranki-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(79,197,120,0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spranki-card-header-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spranki-linked-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #4ade80;
+  letter-spacing: 0.3px;
+}
+
+.spranki-due-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 20px;
+}
+
+.spranki-due-today {
+  background: rgba(239,68,68,0.18);
+  color: #f87171;
+}
+
+.spranki-due-new {
+  background: rgba(250,204,21,0.15);
+  color: #fbbf24;
+}
+
+.spranki-card-title {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #dde2f0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.spranki-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.spranki-tag {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(79,142,247,0.18);
+  color: #7eb5ff;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spranki-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* ── Buttons ── */
+.spranki-btn {
+  flex: 1;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: opacity 0.15s, transform 0.1s;
+  background: #4f8ef7;
+  color: #fff;
+}
+
+.spranki-btn:hover {
+  opacity: 0.88;
+}
+
+.spranki-btn:active {
+  transform: scale(0.97);
+}
+
+.spranki-btn.spranki-secondary {
+  background: rgba(255,255,255,0.10);
+  color: #c0c8e0;
+}
+
+.spranki-unlink {
+  flex: 0 0 auto !important;
+  padding: 5px 9px !important;
+}
+
+.spranki-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ── Notices ── */
+.spranki-notice {
+  font-size: 12px;
+  color: rgba(220,220,240,0.7);
+  text-align: center;
+  padding: 14px 10px;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.spranki-loading {
+  flex-direction: row;
+  justify-content: center;
+  font-style: normal;
+}
+
+.spranki-notice small {
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+  color: rgba(200,200,220,0.5);
+}
+
+/* ── Auto-suggest ── */
+.spranki-find-btn {
+  width: 100%;
+  background: rgba(79,142,247,0.15);
+  color: #7eb5ff;
+  border: 1px solid rgba(79,142,247,0.3);
+  margin-top: 4px;
+}
+
+.spranki-find-btn:hover {
+  background: rgba(79,142,247,0.25);
+}
+
+/* loading state colours applied via .spranki-notice base class */
+
+.spranki-suggestion {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.spranki-suggestion-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spranki-score {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(34,197,94,0.15);
+  color: #4ade80;
+  white-space: nowrap;
+}
+
+
+/* ── Contribute link ── */
+.spranki-contribute {
+  font-size: 11px;
+  color: rgba(180,200,255,0.45);
+  text-decoration: none;
+  text-align: center;
+  padding: 4px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 2px;
+  transition: color 0.15s;
+  display: block;
+}
+
+.spranki-contribute:hover {
+  color: rgba(180,200,255,0.85);
+}
+
+/* ── Session badge ── */
+.spranki-session-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  background: rgba(251,146,60,0.2);
+  color: #fb923c;
+  white-space: nowrap;
+  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.spranki-session-badge:hover {
+  background: rgba(251,146,60,0.35);
+}
+
+.spranki-session-empty {
+  background: rgba(255,255,255,0.07);
+  color: rgba(200,210,240,0.45);
+}
+
+.spranki-session-empty:hover {
+  background: rgba(255,255,255,0.12);
+  color: rgba(200,210,240,0.7);
+}
+
+.spranki-mark-wrong-row {
+  padding-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  margin-top: 2px;
+}
+
+.spranki-mark-wrong-row .spranki-btn {
+  width: 100%;
+}
+
+/* ── Session history ── */
+.spranki-history-entry {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 7px;
+  padding: 8px 10px;
+  margin-bottom: 5px;
+}
+
+.spranki-history-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.spranki-history-header:hover .spranki-history-toggle {
+  color: rgba(200,210,240,0.8) !important;
+}
+
+.spranki-history-questions {
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* ── SVG icon spacing ── */
+.spranki-btn svg {
+  margin-right: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.spranki-unlink svg,
+.spranki-collapse-btn svg {
+  margin-right: 0;
+}
+
+/* Session badge uses gap instead of margin (inline-flex container) */
+.spranki-session-badge svg {
+  flex-shrink: 0;
+}
+
+.spranki-linked-badge svg,
+.spranki-due-badge svg {
+  margin-right: 3px;
+  vertical-align: middle;
+}
+
+.spranki-notice svg {
+  display: block;
+  margin: 0 auto 6px;
+  opacity: 0.6;
+}
+
+/* ── Entrance animation ── */
+@keyframes spranki-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#spranki-overlay {
+  animation: spranki-fade-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Loading spinner ── */
+@keyframes spranki-spin {
+  to { transform: rotate(360deg); }
+}
+
+.spranki-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: #7eb5ff;
+  border-radius: 50%;
+  animation: spranki-spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Due-today pulse ── */
+@keyframes spranki-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+  50%       { box-shadow: 0 0 0 4px rgba(239,68,68,0); }
+}
+
+.spranki-due-today {
+  animation: spranki-pulse 2s ease-in-out infinite;
+}
+
+/* ── Card hover lift ── */
+.spranki-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.spranki-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  border-color: rgba(79,197,120,0.45);
+}
+
+/* ── Suggestion hover ── */
+.spranki-suggestion {
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.spranki-suggestion:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(79,142,247,0.3);
+}
+
+/* ── Button icon-only variant ── */
+.spranki-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* ── History entry animate ── */
+.spranki-history-questions[style*="flex"] {
+  animation: spranki-fade-in 0.15s ease both;
+}
