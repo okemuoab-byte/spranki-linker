@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "build": "vite build",
-    "dev": "vite build --watch"
+    "dev": "node api.js && vite build --watch"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.268",
+    "dotenv": "^8.2.0",
+    "node-fetch": "^3.3.2",
     "typescript": "^5.4",
     "vite": "^5",
     "vite-plugin-web-extension": "^4"
